@@ -1,3 +1,16 @@
+#MetAnalyzer 
+## Install 
+```
+cmsrel CMSSW_7_4_4_patch2
+cd CMSSW_7_4_4_patch2/src
+cmsenv
+git clone git@github.com:ramankhurana/MetScanning.git
+scram b -j9
+cd MetScanning/MetAnalyzer
+cmsRun ConfFile_cfg.py
+```
+
+
 # MetScanning
 ## Install
 ```

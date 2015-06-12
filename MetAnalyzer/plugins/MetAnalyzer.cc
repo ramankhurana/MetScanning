@@ -1,0 +1,297 @@
+// -*- C++ -*-
+//
+// Package:    MetScanning/MetAnalyzer
+// Class:      MetAnalyzer
+// 
+/**\class MetAnalyzer MetAnalyzer.cc MetScanning/MetAnalyzer/plugins/MetAnalyzer.cc
+
+ Description: [one line class summary]
+
+ Implementation:
+     [Notes on implementation]
+*/
+//
+// Original Author:  Raman Khurana
+//         Created:  Wed, 10 Jun 2015 18:44:03 GMT
+//
+//
+
+#define nfilter  4
+// system include files
+#include <memory>
+#include <iostream>
+// user include files
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "DataFormats/METReco/interface/CaloMET.h"
+#include "DataFormats/METReco/interface/PFClusterMET.h"
+#include "DataFormats/METReco/interface/PFMET.h"
+
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/HLTReco/interface/TriggerEvent.h"
+#include "DataFormats/HLTReco/interface/TriggerObject.h"
+#include "FWCore/Common/interface/TriggerNames.h" 
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TTree.h"
+#include "TFile.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "TGraphAsymmErrors.h"
+//
+// class declaration
+//
+
+class MetAnalyzer : public edm::EDAnalyzer {
+   public:
+      explicit MetAnalyzer(const edm::ParameterSet&);
+      ~MetAnalyzer();
+
+      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+
+
+   private:
+      virtual void beginJob() override;
+      virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+      virtual void endJob() override;
+
+      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
+      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
+      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+
+      // ----------member data ---------------------------
+  //TFile* f;
+  edm::Service<TFileService> fs;
+  bool hbhet;
+  bool csct;
+
+  
+  TH1F* caloMET[nfilter];
+  TH1F* PFclusterMET[nfilter];
+  TH1F* PFcaloMET[nfilter];
+  
+  TH1F* caloMETPhi[nfilter];
+  TH1F* PFclusterMETPhi[nfilter];
+  TH1F* PFcaloMETPhi[nfilter];
+  
+  TH2F* caloMET_vs_PFclusterMET[nfilter];
+  TH2F* caloMET_vs_PFcaloMET[nfilter];
+  TH2F* PFclusterMET_vs_PFcaloMET[nfilter];
+  
+};
+
+//
+// constants, enums and typedefs
+//
+
+//
+// static data member definitions
+//
+
+//
+// constructors and destructor
+//
+MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
+
+{
+  //f = new TFile("MetScaning_1.root","RECREATE");
+  std::vector<TString> postfix;
+  postfix.clear();
+  postfix.push_back("NoFilter");
+  postfix.push_back("hbhet");
+  postfix.push_back("csct");
+  postfix.push_back("all");
+ 
+  for(size_t i=0; i<postfix.size(); i++){
+    caloMET[i] = fs->make<TH1F>("caloMET"+postfix[i],"caloMET;caloMET;# of events (normalized to 1)",4000,0,8000);
+    PFclusterMET[i] = fs->make<TH1F>("PFclusterMET"+postfix[i],"PFclusterMET;caloMET;# of events (normalized to 1)",4000,0,8000);
+    PFcaloMET[i] = fs->make<TH1F>("PFcaloMET"+postfix[i],"PFcaloMET;caloMET;# of events (normalized to 1)",4000,0,8000);
+
+    caloMETPhi[i] = fs->make<TH1F>("caloMETPhi"+postfix[i],"caloMET;caloMETPhi;# of events (normalized to 1)",70,-3.5,3.5);
+    PFclusterMETPhi[i] = fs->make<TH1F>("PFclusterMETPhi"+postfix[i],"PFclusterMETPhi;caloMET;# of events (normalized to 1)",70,-3.5,3.5);
+    PFcaloMETPhi[i] = fs->make<TH1F>("PFcaloMETPhi"+postfix[i],"PFcaloMET;caloMETPhi;# of events (normalized to 1)",70,-3.5,3.5);
+    
+    caloMET_vs_PFclusterMET[i]      = fs->make<TH2F>("caloMET_vs_PFclusterMET"+postfix[i],"caloMET_vs_PFclusterMET;caloMET;PFclusterMET",4000,0,8000,4000,0,8000);
+    caloMET_vs_PFcaloMET[i]         = fs->make<TH2F>("caloMET_vs_PFcaloMET"+postfix[i],"caloMET_vs_PFcaloMET;caloMET;PFcaloMET",4000,0,8000,4000,0,8000);
+    PFclusterMET_vs_PFcaloMET[i]    = fs->make<TH2F>("PFclusterMET_vs_PFcaloMET"+postfix[i],"PFclusterMET_vs_PFcaloMET;PFclusterMET;PFcaloMET",4000,0,8000,4000,0,8000);
+  }
+  
+  //now do what ever initialization is needed
+
+}
+
+
+MetAnalyzer::~MetAnalyzer()
+{
+  
+   // do anything here that needs to be done at desctruction time
+   // (e.g. close files, deallocate resources etc.)
+
+}
+
+
+//
+// member functions
+//
+
+// ------------ method called for each event  ------------
+void
+MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
+  using namespace edm;
+  using namespace std;
+  using namespace reco;
+  std::cout<<" working "<<std::endl;
+  hbhet = false;
+  csct  = false;
+  
+  edm::Handle<vector<reco::CaloMET> > caloMETH;
+  iEvent.getByLabel("caloMet",caloMETH);
+  std::vector<reco::CaloMET>::const_iterator cmet = caloMETH.product()->begin();
+  //std::cout<<" MET = "<<cmet->et()<<std::endl;
+  
+  
+  edm::Handle<vector<reco::PFClusterMET> > PFClusterMETH;
+  iEvent.getByLabel("pfClusterMet",PFClusterMETH);
+  std::vector<reco::PFClusterMET>::const_iterator pfclustermet = PFClusterMETH.product()->begin();
+  //std::cout<<" PFClusterMETH = "<<pfclustermet->et()<<std::endl;
+  
+  edm::Handle<vector<reco::PFMET> > PFCaloMETH;
+  iEvent.getByLabel("pfCaloMet",PFCaloMETH);
+  std::vector<reco::PFMET>::const_iterator pfcalomet = PFCaloMETH.product()->begin();
+  //std::cout<<" PFCaloMET = "<<pfcalomet->et()<<std::endl;
+
+  // HBHE Tight Filter
+  edm::Handle<bool> HBHET;
+  edm::InputTag  hbhetag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight","SKIM");
+  iEvent.getByLabel(hbhetag,HBHET);
+  hbhet = (*HBHET.product());
+  if(false) std::cout<<" HBHE = "<<(*HBHET.product())<<std::endl;
+
+
+  edm::Handle<bool> CSCT;
+  edm::InputTag  csctag("CSCTightHaloFilter");
+  iEvent.getByLabel(csctag,CSCT);
+  csct = (*CSCT.product()) ;
+  if(false) std::cout<<" CSCT = "<<(*CSCT.product())<<std::endl;
+  
+  
+  
+  std::vector<bool> filtervec;
+  filtervec.clear();
+  filtervec.push_back(true);// This is without any filter.
+  filtervec.push_back(hbhet);// For HBHE Tight
+  filtervec.push_back(csct);//For CSC Tight)
+  filtervec.push_back(hbhet && csct);//hbhet && csct
+  
+  for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
+    // 1D Histograms
+    caloMET[ifilter]->Fill(cmet->et());
+    PFclusterMET[ifilter]->Fill(pfclustermet->et());
+    PFcaloMET[ifilter]->Fill(pfcalomet->et());
+
+    caloMETPhi[ifilter]->Fill(cmet->phi());
+    PFclusterMETPhi[ifilter]->Fill(pfclustermet->phi());
+    PFcaloMETPhi[ifilter]->Fill(pfcalomet->phi());
+    
+    // 2D Histograms
+    caloMET_vs_PFclusterMET[ifilter]->Fill(cmet->et(),pfclustermet->et());
+    caloMET_vs_PFcaloMET[ifilter]->Fill(cmet->et(),pfcalomet->et());
+    PFclusterMET_vs_PFcaloMET[ifilter]->Fill(pfclustermet->et(),pfcalomet->et());
+  }
+  
+  
+  /*
+  edm::Handle<edm::TriggerResults> trigResults;
+  edm::InputTag trigTag("TriggerResults::SKIM");
+  iEvent.getByLabel(trigTag, trigResults);
+  const edm::TriggerNames & trigNames = iEvent.triggerNames(*trigResults);
+  for (unsigned int i=0; i<trigResults->size(); i++)    {
+    if(false)  std::cout<<" trig name = "<<trigNames.triggerName(i)
+			<<"    "<<trigResults->accept(i)
+			<<std::endl;
+  }
+  */
+#ifdef THIS_IS_AN_EVENT_EXAMPLE
+   Handle<ExampleData> pIn;
+   iEvent.getByLabel("example",pIn);
+#endif
+   
+#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
+   ESHandle<SetupData> pSetup;
+   iSetup.get<SetupRecord>().get(pSetup);
+#endif
+}
+
+
+// ------------ method called once each job just before starting event loop  ------------
+void 
+MetAnalyzer::beginJob()
+{
+}
+
+// ------------ method called once each job just after ending the event loop  ------------
+void 
+MetAnalyzer::endJob() 
+{
+  //f->cd();
+  //for(int i=0;i<4;i++){
+  //  caloMET[i]->Write();
+  //  PFclusterMET[i]->Write();
+  //  PFcaloMET[i]->Write();
+  //  caloMET_vs_PFclusterMET[i]->Write();
+  //  caloMET_vs_PFcaloMET[i]->Write();
+  //  PFclusterMET_vs_PFcaloMET[i]->Write();
+  //}
+  //f->Close();
+}
+
+// ------------ method called when starting to processes a run  ------------
+/*
+void 
+MetAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when ending the processing of a run  ------------
+/*
+void 
+MetAnalyzer::endRun(edm::Run const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when starting to processes a luminosity block  ------------
+/*
+void 
+MetAnalyzer::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when ending the processing of a luminosity block  ------------
+/*
+void 
+MetAnalyzer::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
+void
+MetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  //The following says we do not know what parameters are allowed so do no validation
+  // Please change this to state exactly what you do use, even if it is no parameters
+  edm::ParameterSetDescription desc;
+  desc.setUnknown();
+  descriptions.addDefault(desc);
+}
+
+//define this as a plug-in
+DEFINE_FWK_MODULE(MetAnalyzer);

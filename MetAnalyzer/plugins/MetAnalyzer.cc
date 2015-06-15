@@ -69,7 +69,23 @@ class MetAnalyzer : public edm::EDAnalyzer {
   edm::Service<TFileService> fs;
   bool hbhet;
   bool csct;
+  TTree* metTree;
 
+  Double_t  calomet_        ;
+  Double_t  pfclustermet_   ;
+  Double_t  pfcalomet_      ; 
+  
+  Double_t  calometphi_     ; 
+  Double_t  pfclustermetphi_;
+  Double_t  pfcalometphi_   ; 
+  
+  Bool_t   hbhet_          ; 
+  Bool_t   csct_           ; 
+  
+  ULong64_t  run      ; 
+  ULong64_t  lumi     ; 
+  ULong64_t  event    ; 
+  
   
   TH1F* caloMET[nfilter];
   TH1F* PFclusterMET[nfilter];
@@ -85,7 +101,6 @@ class MetAnalyzer : public edm::EDAnalyzer {
   
   TH2F* caloMET_vs_caloMETPhi[nfilter];
   
-  TGraphAsymmErrors* MetEff[3];
 };
 
 //
@@ -102,6 +117,8 @@ class MetAnalyzer : public edm::EDAnalyzer {
 MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
 
 {
+  
+  metTree = fs->make<TTree>("metTree","metTree");
   //f = new TFile("MetScaning_1.root","RECREATE");
   std::vector<TString> postfix;
   postfix.clear();
@@ -109,7 +126,7 @@ MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
   postfix.push_back("hbhet");
   postfix.push_back("csct");
   postfix.push_back("all");
- 
+  
   for(size_t i=0; i<postfix.size(); i++){
     caloMET[i] = fs->make<TH1F>("caloMET"+postfix[i],"caloMET;caloMET;# of events (normalized to 1)",4000,0,8000);
     PFclusterMET[i] = fs->make<TH1F>("PFclusterMET"+postfix[i],"PFclusterMET;caloMET;# of events (normalized to 1)",4000,0,8000);
@@ -190,6 +207,21 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
   
   
+  calomet_         = cmet->et();
+  std::cout<<" calomet_ = "<<calomet_<<std::endl;
+  pfclustermet_    = pfclustermet->et();
+  pfcalomet_       = pfcalomet->et();
+
+  calometphi_      = cmet->phi();
+  pfclustermetphi_ = pfclustermet->phi();
+  pfcalometphi_    = pfcalomet->phi();
+
+  hbhet_            = hbhet;
+  csct_             = csct ;
+  
+  run               = iEvent.id().run();
+  lumi              = iEvent.id().luminosityBlock();
+  event             = iEvent.id().event();
   
   std::vector<bool> filtervec;
   filtervec.clear();
@@ -269,6 +301,8 @@ for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
 			<<std::endl;
   }
   */
+
+ metTree->Fill();
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
    iEvent.getByLabel("example",pIn);
@@ -285,12 +319,44 @@ for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
 void 
 MetAnalyzer::beginJob()
 {
+  Double_t  calomet_        ;
+  Double_t  pfclustermet_   ;
+  Double_t  pfcalomet_      ; 
+  
+  Double_t  calometphi_     ; 
+  Double_t  pfclustermetphi_;
+  Double_t  pfcalometphi_   ; 
+  
+  Bool_t   hbhet_          ; 
+  Bool_t   csct_           ; 
+  
+  ULong64_t  run      ; 
+  ULong64_t  lumi     ; 
+  ULong64_t  event    ; 
+
+  metTree->Branch("calomet_",&calomet_,"calomet_/D");
+  metTree->Branch("pfclustermet_",&pfclustermet_,"pfclustermet_/D");
+  metTree->Branch("pfcalomet_",&pfcalomet_,"pfcalomet_/D");
+  metTree->Branch("calometphi_",&calometphi_,"calometphi_/D");
+  metTree->Branch("pfclustermetphi_",&pfclustermetphi_,"pfclustermetphi_/D");
+  metTree->Branch("pfcalometphi_",&pfcalometphi_,"pfcalometphi_/D");
+  
+  metTree->Branch("hbhet_",&hbhet_,"hbhet_/O");
+  metTree->Branch("csct_",&csct_,"csct_/O");
+  
+  metTree->Branch("run",&run,"run/L");
+  metTree->Branch("lumi",&lumi,"lumi/L");
+  metTree->Branch("event",&event,"event/L");
+
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 MetAnalyzer::endJob() 
+  
 {
+  
+  //metTree->Write();
   //f->cd();
   //for(int i=0;i<4;i++){
   //  caloMET[i]->Write();

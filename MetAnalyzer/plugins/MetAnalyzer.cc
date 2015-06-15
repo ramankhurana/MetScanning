@@ -83,6 +83,7 @@ class MetAnalyzer : public edm::EDAnalyzer {
   TH2F* caloMET_vs_PFcaloMET[nfilter];
   TH2F* PFclusterMET_vs_PFcaloMET[nfilter];
   
+  TGraphAsymmErrors* MetEff[3];
 };
 
 //
@@ -119,6 +120,10 @@ MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
     caloMET_vs_PFclusterMET[i]      = fs->make<TH2F>("caloMET_vs_PFclusterMET"+postfix[i],"caloMET_vs_PFclusterMET;caloMET;PFclusterMET",4000,0,8000,4000,0,8000);
     caloMET_vs_PFcaloMET[i]         = fs->make<TH2F>("caloMET_vs_PFcaloMET"+postfix[i],"caloMET_vs_PFcaloMET;caloMET;PFcaloMET",4000,0,8000,4000,0,8000);
     PFclusterMET_vs_PFcaloMET[i]    = fs->make<TH2F>("PFclusterMET_vs_PFcaloMET"+postfix[i],"PFclusterMET_vs_PFcaloMET;PFclusterMET;PFcaloMET",4000,0,8000,4000,0,8000);
+    
+    //    if(i>0) {
+    //MetEff[i] = fs->make<TGraphAsymmErrors>("");
+    //    }
   }
   
   //now do what ever initialization is needed
@@ -165,7 +170,7 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel("pfCaloMet",PFCaloMETH);
   std::vector<reco::PFMET>::const_iterator pfcalomet = PFCaloMETH.product()->begin();
   //std::cout<<" PFCaloMET = "<<pfcalomet->et()<<std::endl;
-
+  
   // HBHE Tight Filter
   edm::Handle<bool> HBHET;
   edm::InputTag  hbhetag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight","SKIM");
@@ -182,6 +187,7 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
   
   
+  
   std::vector<bool> filtervec;
   filtervec.clear();
   filtervec.push_back(true);// This is without any filter.
@@ -189,7 +195,47 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   filtervec.push_back(csct);//For CSC Tight)
   filtervec.push_back(hbhet && csct);//hbhet && csct
   
-  for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
+  bool cat1 = (cmet->et()>200 ) || (pfclustermet->et() > 200) || (pfcalomet->et() > 200); //  Any MET is > 250 GeV
+  // pfclustermet vs calomet
+  bool cat2 = (((pfclustermet->et()     > 1.5*cmet->et()) && (cmet->et()         > 30.0) )); //
+  bool cat3 =  ((1.5*pfclustermet->et() < cmet->et())     && (pfclustermet->et() > 30.0) ); //
+  //bool cat2 = ((pfclustermet->et()   > 3*cmet->et() ) && (cmet->et()         < 30.0 )) || ((pfclustermet->et()     > 1.5*cmet->et()) && (cmet->et()         > 30.0) ); //
+  //bool cat3 = ((3*pfclustermet->et() < cmet->et()   ) && (pfclustermet->et() < 30.0 )) || ((1.5*pfclustermet->et() < cmet->et())     && (pfclustermet->et() > 30.0) ); //
+  // pfcalomet vs calomet
+  bool cat4 =  ((pfcalomet->et()     > 2.5*cmet->et()) && (cmet->et()         > 30.0) ); //
+  bool cat5 =  ((2.5*pfcalomet->et() < cmet->et())     && (pfcalomet->et()    > 30.0) ); //
+  //bool cat4 = ((pfcalomet->et()   > 4*cmet->et() ) && (cmet->et()         < 30.0 )) || ((pfcalomet->et()     > 2.5*cmet->et()) && (cmet->et()         > 30.0) ); //
+  //bool cat5 = ((4*pfcalomet->et() < cmet->et()   ) && (pfcalomet->et() < 30.0 ))    || ((2.5*pfcalomet->et() < cmet->et())     && (pfcalomet->et()    > 30.0) ); //
+  //pfcalomet vs pfclustermet
+  bool cat6 =  ((pfcalomet->et()     > 2.5*pfclustermet->et()) && (pfclustermet->et()  > 30.0) ); //
+  bool cat7 = ((1.5*pfcalomet->et() < pfclustermet->et())     && (pfcalomet->et()     > 30.0) ); //
+  //bool cat6 = ((pfcalomet->et()   > 4*pfclustermet->et() ) && (pfclustermet->et() < 30.0 )) || ((pfcalomet->et()     > 2.5*pfclustermet->et()) && (pfclustermet->et()  > 30.0) ); //
+  //bool cat7 = ((4*pfcalomet->et() < pfclustermet->et()   ) && (pfcalomet->et()    < 30.0 )) || ((1.5*pfcalomet->et() < pfclustermet->et())     && (pfcalomet->et()     > 30.0) ); //
+  
+  std::vector<bool> categories;
+  categories.clear();
+  categories.push_back(cat1);
+  categories.push_back(cat2);
+  categories.push_back(cat3);
+  categories.push_back(cat4);
+  categories.push_back(cat5);
+  categories.push_back(cat6);
+  categories.push_back(cat7);
+  for (size_t icat=0; icat<categories.size(); icat++){
+    if(categories[icat]) {
+      std::cout<<" category "<<icat+1<<"  "<<cmet->et()
+	       <<" : "<<pfclustermet->et()
+	       <<" : "<<pfcalomet->et()
+	       <<" : "<<hbhet
+	       <<" : "<<csct
+	       <<" : "<< iEvent.id().run()<<":"
+	       << iEvent.id().luminosityBlock()<<":"
+	       << iEvent.id().event()
+	       <<std::endl;
+      break;
+    }
+  }
+for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
     // 1D Histograms
     caloMET[ifilter]->Fill(cmet->et());
     PFclusterMET[ifilter]->Fill(pfclustermet->et());

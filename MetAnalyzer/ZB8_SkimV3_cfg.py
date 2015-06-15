@@ -252,8 +252,12 @@ process.source = cms.Source("PoolSource",
     )
 )
 
-process.demo = cms.EDAnalyzer('MetAnalyzer'
+
+process.Metanalyzer = cms.EDAnalyzer('MetAnalyzer'
 )
 
 
-process.p = cms.Path(process.demo)
+process.TFileService = cms.Service("TFileService",
+                                   fileName = cms.string("METScanning_ZeroBias.root")
+                                   )
+process.p = cms.Path(process.Metanalyzer)

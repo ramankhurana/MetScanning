@@ -83,6 +83,8 @@ class MetAnalyzer : public edm::EDAnalyzer {
   TH2F* caloMET_vs_PFcaloMET[nfilter];
   TH2F* PFclusterMET_vs_PFcaloMET[nfilter];
   
+  TH2F* caloMET_vs_caloMETPhi[nfilter];
+  
   TGraphAsymmErrors* MetEff[3];
 };
 
@@ -121,6 +123,7 @@ MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
     caloMET_vs_PFcaloMET[i]         = fs->make<TH2F>("caloMET_vs_PFcaloMET"+postfix[i],"caloMET_vs_PFcaloMET;caloMET;PFcaloMET",4000,0,8000,4000,0,8000);
     PFclusterMET_vs_PFcaloMET[i]    = fs->make<TH2F>("PFclusterMET_vs_PFcaloMET"+postfix[i],"PFclusterMET_vs_PFcaloMET;PFclusterMET;PFcaloMET",4000,0,8000,4000,0,8000);
     
+    caloMET_vs_caloMETPhi[i]        = fs->make<TH2F>("caloMET_vs_caloMETPhi"+postfix[i],"caloMET_vs_caloMETPhi;caloMET #phi;caloMET",70,-3.5,3.5,4000,0,8000);
     //    if(i>0) {
     //MetEff[i] = fs->make<TGraphAsymmErrors>("");
     //    }
@@ -236,7 +239,8 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
 for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
-    // 1D Histograms
+  if(!filtervec[ifilter]) continue;
+  // 1D Histograms
     caloMET[ifilter]->Fill(cmet->et());
     PFclusterMET[ifilter]->Fill(pfclustermet->et());
     PFcaloMET[ifilter]->Fill(pfcalomet->et());
@@ -249,6 +253,8 @@ for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
     caloMET_vs_PFclusterMET[ifilter]->Fill(cmet->et(),pfclustermet->et());
     caloMET_vs_PFcaloMET[ifilter]->Fill(cmet->et(),pfcalomet->et());
     PFclusterMET_vs_PFcaloMET[ifilter]->Fill(pfclustermet->et(),pfcalomet->et());
+
+    caloMET_vs_caloMETPhi[ifilter]->Fill(cmet->phi(),cmet->et());
   }
   
   

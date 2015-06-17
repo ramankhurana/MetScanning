@@ -21,6 +21,7 @@
 #include <memory>
 #include <iostream>
 // user include files
+#include "TProfile2D.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -28,6 +29,7 @@
 #include "DataFormats/METReco/interface/CaloMET.h"
 #include "DataFormats/METReco/interface/PFClusterMET.h"
 #include "DataFormats/METReco/interface/PFMET.h"
+#include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"
@@ -100,7 +102,8 @@ class MetAnalyzer : public edm::EDAnalyzer {
   TH2F* PFclusterMET_vs_PFcaloMET[nfilter];
   
   TH2F* caloMET_vs_caloMETPhi[nfilter];
-  
+  TProfile2D* pfClECALMap;
+  TProfile2D* pfClHCALMap;
 };
 
 //
@@ -146,6 +149,8 @@ MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
     //    }
   }
   
+  pfClECALMap   =  fs->make<TProfile2D>("pfClECALMap","pfClECALMap;#eta;#phi;<p_{T}> (in GeV)",140,-3.14,3.14,140,-3.14,3.14);
+  pfClHCALMap   =  fs->make<TProfile2D>("pfClHCALMap","pfClHCALMap;#eta;#phi;<p_{T}> (in GeV)",140,-3.14,3.14,140,-3.14,3.14);
   //now do what ever initialization is needed
 
 }
@@ -206,22 +211,43 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if(false) std::cout<<" CSCT = "<<(*CSCT.product())<<std::endl;
   
   
+  // particleFlowClusterECAL
+  edm::Handle<vector<reco::PFCluster> > H_particleFlowClusterECAL;
+  iEvent.getByLabel("particleFlowClusterECAL",H_particleFlowClusterECAL);
+  std::vector<reco::PFCluster>::const_iterator pfClECAL;
   
-  calomet_         = cmet->et();
+  // particleFlowClusterHCAL
+  edm::Handle<vector<reco::PFCluster> > H_particleFlowClusterHCAL;
+  iEvent.getByLabel("particleFlowClusterHCAL",H_particleFlowClusterHCAL);
+  std::vector<reco::PFCluster>::const_iterator pfClHCAL;
+  
+  // PF ECAL 
+  for(pfClECAL = H_particleFlowClusterECAL->begin(); pfClECAL != H_particleFlowClusterECAL->end(); ++pfClECAL){
+    if(false) std::cout<<" pfClECAL = "<<pfClECAL->eta()<<"  "<<pfClECAL->phi()<<"  "<<pfClECAL->pt()<<std::endl;
+    pfClECALMap->Fill(pfClECAL->eta(),pfClECAL->phi(),pfClECAL->pt());
+  }
+
+  // PF HCAL
+  for(pfClHCAL = H_particleFlowClusterHCAL->begin(); pfClHCAL != H_particleFlowClusterHCAL->end(); ++pfClHCAL){
+    if(false) std::cout<<" pfClHCAL = "<<pfClHCAL->eta()<<"  "<<pfClHCAL->phi()<<"  "<<pfClHCAL->pt()<<std::endl;
+    pfClHCALMap->Fill(pfClHCAL->eta(),pfClHCAL->phi(),pfClHCAL->pt());
+  }
+  
+  calomet_         = (Double_t) cmet->et();
   std::cout<<" calomet_ = "<<calomet_<<std::endl;
-  pfclustermet_    = pfclustermet->et();
-  pfcalomet_       = pfcalomet->et();
+  pfclustermet_    = (Double_t) pfclustermet->et();
+  pfcalomet_       = (Double_t) pfcalomet->et();
 
-  calometphi_      = cmet->phi();
-  pfclustermetphi_ = pfclustermet->phi();
-  pfcalometphi_    = pfcalomet->phi();
+  calometphi_      = (Double_t) cmet->phi();
+  pfclustermetphi_ = (Double_t) pfclustermet->phi();
+  pfcalometphi_    = (Double_t) pfcalomet->phi();
 
-  hbhet_            = hbhet;
-  csct_             = csct ;
+  hbhet_            = (Bool_t) hbhet;
+  csct_             = (Bool_t) csct ;
   
-  run               = iEvent.id().run();
-  lumi              = iEvent.id().luminosityBlock();
-  event             = iEvent.id().event();
+  run               = (ULong64_t) iEvent.id().run();
+  lumi              = (ULong64_t) iEvent.id().luminosityBlock();
+  event             = (ULong64_t) iEvent.id().event();
   
   std::vector<bool> filtervec;
   filtervec.clear();
@@ -319,20 +345,6 @@ for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
 void 
 MetAnalyzer::beginJob()
 {
-  Double_t  calomet_        ;
-  Double_t  pfclustermet_   ;
-  Double_t  pfcalomet_      ; 
-  
-  Double_t  calometphi_     ; 
-  Double_t  pfclustermetphi_;
-  Double_t  pfcalometphi_   ; 
-  
-  Bool_t   hbhet_          ; 
-  Bool_t   csct_           ; 
-  
-  ULong64_t  run      ; 
-  ULong64_t  lumi     ; 
-  ULong64_t  event    ; 
 
   metTree->Branch("calomet_",&calomet_,"calomet_/D");
   metTree->Branch("pfclustermet_",&pfclustermet_,"pfclustermet_/D");

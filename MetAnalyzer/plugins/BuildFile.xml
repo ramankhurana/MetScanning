@@ -6,4 +6,5 @@
 <use name="DataFormats/HLTReco"/>
 <use name="CommonTools/UtilAlgos"/>
 <use name="FWCore/ServiceRegistry"/>
+<use name="DataFormats/ParticleFlowReco"/>
 <flags EDM_PLUGIN="1"/>

@@ -21,7 +21,13 @@ process.GlobalTag.globaltag = 'GR_P_V56::All'
 ##____________________________________________________________________________||
 process.source = cms.Source(
     "PoolSource",
-    fileNames = cms.untracked.vstring("root://eoscms.cern.ch//store/data/Run2015A/ZeroBias1/RECO/PromptReco-v1/000/246/930/00000/2E8CE084-930B-E511-88E0-02163E0145E7.root")
+    #fileNames = cms.untracked.vstring("root://eoscms.cern.ch//store/data/Run2015A/ZeroBias1/RECO/PromptReco-v1/000/246/930/00000/2E8CE084-930B-E511-88E0-02163E0145E7.root")
+    fileNames = cms.untracked.vstring("file:../../../pickevents.root",
+                                      #"file:../../../pickevents_2.root",
+                                      #"file:../../../pickevents_3.root",
+                                      #"file:../../../pickevents_4.root",
+                                      #"file:../../../pickevents_5.root"
+                                      )
     )
 
 ##____________________________________________________________________________||

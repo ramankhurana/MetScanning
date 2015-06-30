@@ -7,4 +7,5 @@
 <use name="CommonTools/UtilAlgos"/>
 <use name="FWCore/ServiceRegistry"/>
 <use name="DataFormats/ParticleFlowReco"/>
+<use name="DataFormats/JetReco"/>
 <flags EDM_PLUGIN="1"/>

@@ -86,6 +86,10 @@ private:
   Double_t  calometphi_     ; 
   Double_t  pfclustermetphi_;
   Double_t  pfcalometphi_   ; 
+
+  Double_t caloSumEt_       ;
+  Double_t pfclusterSumEt_  ;
+  Double_t pfcalocaloSumEt_ ;
   
   Bool_t   hbhet_          ; 
   Bool_t   csct_           ; 
@@ -102,6 +106,10 @@ private:
   TH1F* caloSumET[nfilter];
   TH1F* PFclusterSumET[nfilter];
   TH1F* PFcaloSumET[nfilter];
+
+  TH1F* caloMET_over_SumET[nfilter];
+  TH1F* PFclusterMET_over_SumET[nfilter];
+  TH1F* PFcaloMET_over_SumET[nfilter];
   
   TH1F* caloMETPhi[nfilter];
   TH1F* PFclusterMETPhi[nfilter];
@@ -150,6 +158,10 @@ MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
     caloSumET[i] = fs->make<TH1F>("caloSumET"+postfix[i],"caloSumET;caloSumET;# of events (normalized to 1)",4000,0,8000);
     PFclusterSumET[i] = fs->make<TH1F>("PFclusterSumET"+postfix[i],"PFclusterSumET;caloSumET;# of events (normalized to 1)",4000,0,8000);
     PFcaloSumET[i] = fs->make<TH1F>("PFcaloSumET"+postfix[i],"PFcaloSumET;PFcaloSumET;# of events (normalized to 1)",4000,0,8000);
+
+    caloMET_over_SumET[i] = fs->make<TH1F>("caloMET_over_SumET"+postfix[i],"caloMET_over_SumET;caloSumET;# of events (normalized to 1)",400,0,1.0);
+    PFclusterMET_over_SumET[i] = fs->make<TH1F>("PFclusterMET_over_SumET"+postfix[i],"PFclusterMET_over_SumET;caloSumET;# of events (normalized to 1)",400,0,1.0);
+    PFcaloMET_over_SumET[i] = fs->make<TH1F>("PFcaloMET_over_SumET"+postfix[i],"PFcaloMET_over_SumET;PFcaloSumET;# of events (normalized to 1)",400,0,1.0);
 
     caloMETPhi[i] = fs->make<TH1F>("caloMETPhi"+postfix[i],"caloMET;caloMETPhi;# of events (normalized to 1)",70,-3.5,3.5);
     PFclusterMETPhi[i] = fs->make<TH1F>("PFclusterMETPhi"+postfix[i],"PFclusterMETPhi;caloMET;# of events (normalized to 1)",70,-3.5,3.5);
@@ -285,6 +297,10 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   pfclustermet_    = (Double_t) pfclustermet->et();
   pfcalomet_       = (Double_t) pfcalomet->et();
   
+  caloSumEt_       =  (Double_t)   cmet->sumEt(); 
+  pfclusterSumEt_  =  (Double_t)   pfclustermet->sumEt(); 
+  pfcalocaloSumEt_ =  (Double_t)   pfcalomet->sumEt(); 
+  
   calometphi_      = (Double_t) cmet->phi();
   pfclustermetphi_ = (Double_t) pfclustermet->phi();
   pfcalometphi_    = (Double_t) pfcalomet->phi();
@@ -365,6 +381,10 @@ for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
     PFclusterSumET[ifilter]->Fill(pfclustermet->sumEt());
     PFcaloSumET[ifilter]->Fill(pfcalomet->sumEt());
 
+    caloMET_over_SumET[ifilter]->Fill(cmet->et()/cmet->sumEt());
+    PFclusterMET_over_SumET[ifilter]->Fill(pfclustermet->et()/pfclustermet->sumEt());
+    PFcaloMET_over_SumET[ifilter]->Fill(pfcalomet->et()/pfcalomet->sumEt());
+
     caloMETPhi[ifilter]->Fill(cmet->phi());
     PFclusterMETPhi[ifilter]->Fill(pfclustermet->phi());
     PFcaloMETPhi[ifilter]->Fill(pfcalomet->phi());
@@ -414,7 +434,11 @@ MetAnalyzer::beginJob()
   metTree->Branch("calometphi_",&calometphi_,"calometphi_/D");
   metTree->Branch("pfclustermetphi_",&pfclustermetphi_,"pfclustermetphi_/D");
   metTree->Branch("pfcalometphi_",&pfcalometphi_,"pfcalometphi_/D");
-  
+    
+  metTree->Branch("caloSumEt_",&caloSumEt_,"caloSumEt_/D");
+  metTree->Branch("pfclusterSumEt_",&pfclusterSumEt_,"pfclusterSumEt_/D");
+  metTree->Branch("pfcalocaloSumEt_",&pfcalocaloSumEt_,"pfcalocaloSumEt_/D");
+
   metTree->Branch("hbhet_",&hbhet_,"hbhet_/O");
   metTree->Branch("csct_",&csct_,"csct_/O");
   

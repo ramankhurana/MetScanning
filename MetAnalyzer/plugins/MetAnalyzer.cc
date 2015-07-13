@@ -79,9 +79,11 @@ private:
   bool hbhetr1;
   TTree* metTree;
 
+  // Add variables to be stored in the branch
   Double_t  calomet_        ;
   Double_t  pfclustermet_   ;
   Double_t  pfcalomet_      ; 
+  Double_t  pfcalometPhi_          ; // 
   
   Double_t  calometphi_     ; 
   Double_t  pfclustermetphi_;
@@ -93,7 +95,7 @@ private:
   
   Bool_t   hbhet_          ; 
   Bool_t   csct_           ; 
-  
+  Bool_t hbhetR1_          ;
   ULong64_t  run      ; 
   ULong64_t  lumi     ; 
   ULong64_t  event    ; 
@@ -214,6 +216,12 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel("caloMet",caloMETH);
   std::vector<reco::CaloMET>::const_iterator cmet = caloMETH.product()->begin();
   //std::cout<<" MET = "<<cmet->et()<<std::endl;
+
+
+  edm::Handle<vector<reco::PFMET> > pfMETH;
+  iEvent.getByLabel("pfMet",pfMETH);
+  std::vector<reco::PFMET>::const_iterator pfmet = pfMETH.product()->begin();
+  std::cout<<" PFMET ========== "<<pfmet->et()<<std::endl;
   
   
   edm::Handle<vector<reco::PFClusterMET> > PFClusterMETH;
@@ -242,11 +250,23 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel(hbhetag,HBHET);
   hbhet = (*HBHET.product());
   if(false) std::cout<<" HBHE = "<<(*HBHET.product())<<std::endl;
-
+  
+  // HBHET Run 1 Filter 
   edm::Handle<bool> HBHETR1;
   edm::InputTag  hbhetagR1("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun1","SKIM");
   iEvent.getByLabel(hbhetagR1,HBHETR1);
   hbhetr1 = (*HBHET.product());
+  
+//edm::Handle<HcalNoiseSummary> hSummary;
+//iEvent.getByLabel("hcalnoise", hSummary);
+//
+//std::cout<<" num of iso channels = "<<hSummary->numIsolatedNoiseChannels()
+//	   <<" iso noise sum E = "<<hSummary->isolatedNoiseSumE()
+//	   <<" iso noise sum Et = "<<hSummary->isolatedNoiseSumEt()
+//	   <<std::endl;
+  //if( hSummary->numIsolatedNoiseChannels() >=10 ) return false;
+  //if( hSummary->isolatedNoiseSumE() >=50        ) return false;
+  //if( hSummary->isolatedNoiseSumEt() >=25       ) return false;
   
 
 
@@ -304,10 +324,12 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   calometphi_      = (Double_t) cmet->phi();
   pfclustermetphi_ = (Double_t) pfclustermet->phi();
   pfcalometphi_    = (Double_t) pfcalomet->phi();
-
+  
+  pfcalometPhi_    = (Double_t) pfcalomet->phi();
+  
   hbhet_            = (Bool_t) hbhet;
   csct_             = (Bool_t) csct ;
-  
+  hbhetR1_          = (Bool_t) hbhetr1;
   run               = (ULong64_t) iEvent.id().run();
   lumi              = (ULong64_t) iEvent.id().luminosityBlock();
   event             = (ULong64_t) iEvent.id().event();
@@ -434,13 +456,16 @@ MetAnalyzer::beginJob()
   metTree->Branch("calometphi_",&calometphi_,"calometphi_/D");
   metTree->Branch("pfclustermetphi_",&pfclustermetphi_,"pfclustermetphi_/D");
   metTree->Branch("pfcalometphi_",&pfcalometphi_,"pfcalometphi_/D");
-    
+  
+  metTree->Branch("pfcalometPhi_",&pfcalometPhi_,"pfcalometPhi_/D");
+
   metTree->Branch("caloSumEt_",&caloSumEt_,"caloSumEt_/D");
   metTree->Branch("pfclusterSumEt_",&pfclusterSumEt_,"pfclusterSumEt_/D");
   metTree->Branch("pfcalocaloSumEt_",&pfcalocaloSumEt_,"pfcalocaloSumEt_/D");
 
   metTree->Branch("hbhet_",&hbhet_,"hbhet_/O");
   metTree->Branch("csct_",&csct_,"csct_/O");
+  metTree->Branch("hbhetR1_",&hbhetR1_,"hbhetR1_/O");
   
   metTree->Branch("run",&run,"run/L");
   metTree->Branch("lumi",&lumi,"lumi/L");

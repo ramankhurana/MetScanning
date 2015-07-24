@@ -37,7 +37,7 @@
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"
 #include "DataFormats/HLTReco/interface/TriggerObject.h"
 #include "FWCore/Common/interface/TriggerNames.h" 
-
+#include "DataFormats/METReco/interface/HcalNoiseSummary.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "TH1F.h"
@@ -77,6 +77,8 @@ private:
   bool hbhet;
   bool csct;
   bool hbhetr1;
+  
+
   TTree* metTree;
 
   // Add variables to be stored in the branch
@@ -96,6 +98,13 @@ private:
   Bool_t   hbhet_          ; 
   Bool_t   csct_           ; 
   Bool_t hbhetR1_          ;
+  
+  Bool_t ecaldeadcellTPFilter_;
+  Bool_t eebadscf_;
+  Float_t NIsolatedNoiseChannels_;
+  Float_t IsolatedNoiseSumE_;
+  Float_t IsolatedNoiseSumEt_;
+  Bool_t isolationfilterstatus_;
   ULong64_t  run      ; 
   ULong64_t  lumi     ; 
   ULong64_t  event    ; 
@@ -212,6 +221,15 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   hbhet = false;
   csct  = false;
   hbhetr1=false;
+  
+  ecaldeadcellTPFilter_=false;
+  eebadscf_ = false;
+  NIsolatedNoiseChannels_=-999.;
+  IsolatedNoiseSumE_=-999.0;
+  IsolatedNoiseSumEt_=-999.0;
+  isolationfilterstatus_=true;;
+
+  
   edm::Handle<vector<reco::CaloMET> > caloMETH;
   iEvent.getByLabel("caloMet",caloMETH);
   std::vector<reco::CaloMET>::const_iterator cmet = caloMETH.product()->begin();
@@ -275,6 +293,34 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel(csctag,CSCT);
   csct = (*CSCT.product()) ;
   if(false) std::cout<<" CSCT = "<<(*CSCT.product())<<std::endl;
+  
+  
+  //ECAL Dead Cell Filter
+  // Add branch for this.
+  edm::Handle<bool>  ECALDeadCellTP;
+  edm::InputTag ecaldeadcelltp("EcalDeadCellTriggerPrimitiveFilter");
+  iEvent.getByLabel(ecaldeadcelltp,ECALDeadCellTP);
+  ecaldeadcellTPFilter_ = (*ECALDeadCellTP.product()); // branch  Bool_t
+
+  // eeBadScFilter
+  // Add branch for this.
+  edm::Handle<bool>  EEBADSCFILTER;
+  edm::InputTag eebasscfilter("eeBadScFilter");
+  iEvent.getByLabel(eebasscfilter,EEBADSCFILTER);
+  eebadscf_   = (*EEBADSCFILTER.product()); // branch Bool_t
+  
+  // Isolation Filter Vars
+  edm::Handle<HcalNoiseSummary> hSummary;
+  iEvent.getByLabel("hcalnoise", hSummary);
+  NIsolatedNoiseChannels_ = hSummary->numIsolatedNoiseChannels() ; // branch Float_t
+  IsolatedNoiseSumE_      = hSummary->isolatedNoiseSumE(); // branch  Float_t
+  IsolatedNoiseSumEt_     = hSummary->isolatedNoiseSumEt(); // branch  Float_t
+  
+  isolationfilterstatus_ = true; // branch Bool_t
+  if( hSummary->numIsolatedNoiseChannels() >=10 ) isolationfilterstatus_  = false;
+  if( hSummary->isolatedNoiseSumE() >=50        ) isolationfilterstatus_  = false;
+  if( hSummary->isolatedNoiseSumEt() >=25       ) isolationfilterstatus_  = false;
+
   
   
   // particleFlowClusterECAL

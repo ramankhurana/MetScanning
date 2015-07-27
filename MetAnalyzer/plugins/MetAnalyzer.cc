@@ -45,6 +45,11 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+
+#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
+#include "DataFormats/JetReco/interface/PFJet.h"
+#include "DataFormats/EgammaCandidates/interface/Photon.h"
+
 #include "TGraphAsymmErrors.h"
 //
 // class declaration
@@ -107,6 +112,11 @@ private:
   Float_t IsolatedNoiseSumE_;
   Float_t IsolatedNoiseSumEt_;
   Bool_t isolationfilterstatus_;
+  
+  Bool_t isphoton;
+  Bool_t ispfjet;
+  Bool_t iselectron;
+
   ULong64_t  run      ; 
   ULong64_t  lumi     ; 
   ULong64_t  event    ; 
@@ -303,7 +313,7 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::InputTag ecaldeadcelltp("EcalDeadCellTriggerPrimitiveFilter");
   iEvent.getByLabel(ecaldeadcelltp,ECALDeadCellTP);
   ecaldeadcellTPFilter_ = (*ECALDeadCellTP.product()); // branch  Bool_t
-
+  
   // eeBadScFilter
   // Add branch for this.
   edm::Handle<bool>  EEBADSCFILTER;
@@ -323,7 +333,57 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if( hSummary->numIsolatedNoiseChannels() >=10 ) isolationfilterstatus_  = false;
   if( hSummary->isolatedNoiseSumE() >=50        ) isolationfilterstatus_  = false;
   if( hSummary->isolatedNoiseSumEt() >=25       ) isolationfilterstatus_  = false;
+  
+  std::cout<<" ecalDead = "<<ecaldeadcellTPFilter_
+	   <<" EE  = "<<eebadscf_
+	   <<" isolationfilterstatus_ = "<<isolationfilterstatus_
+	   <<std::endl;
+  
 
+  // Photons 
+  edm::Handle< vector<reco::Photon> > photonH;
+  edm::InputTag photag("photons");
+  iEvent.getByLabel(photag,photonH);
+  std::vector<reco::Photon>::const_iterator photons;
+  isphoton = false;
+  for(photons=photonH->begin(); photons != photonH->end(); ++photons){
+    if(photons->pt()<100) continue;
+    isphoton = FindEvent(photons->eta(),photons->phi());
+    if(isphoton) break;
+    std::cout<<" isphoton = "<<isphoton
+	     <<" pt = "<<photons->pt()
+	     <<std::endl;
+  }
+  
+  // PFJets
+  edm::Handle< vector<reco::PFJet> > pfjetH;
+  edm::InputTag jettag("ak4PFJetsCHS");
+  iEvent.getByLabel(jettag,pfjetH);
+  std::vector<reco::PFJet>::const_iterator pfjets;
+  ispfjet = false;
+  for(pfjets=pfjetH->begin(); pfjets != pfjetH->end(); ++pfjets){
+    if(pfjets->pt()<150) continue;
+    ispfjet = FindEvent(pfjets->eta(),pfjets->phi());
+    if(ispfjet) break;
+    std::cout<<" ispfjet = "<<ispfjet
+	     <<" pt = "<<pfjets->pt()
+	     <<std::endl;
+  }
+  
+  // Electrons
+  edm::Handle< vector<reco::GsfElectron> > electronH;
+  edm::InputTag eletag("gedGsfElectrons");
+  iEvent.getByLabel(eletag,electronH);
+  std::vector<reco::GsfElectron>::const_iterator electrons;
+  iselectron = false;
+  for(electrons=electronH->begin(); electrons!= electronH->end(); ++electrons){
+    if(electrons->pt()<100) continue;
+    iselectron = FindEvent(electrons->eta(),electrons->phi());
+    if(iselectron) break;
+    std::cout<<" iselectron = "<<iselectron
+	     <<" pt = "<<electrons->pt()
+	     <<std::endl;
+  }
   
   
   // particleFlowClusterECAL
@@ -514,6 +574,7 @@ MetAnalyzer::beginJob()
   metTree->Branch("caloSumEt_",&caloSumEt_,"caloSumEt_/D");
   metTree->Branch("pfclusterSumEt_",&pfclusterSumEt_,"pfclusterSumEt_/D");
   metTree->Branch("pfcalocaloSumEt_",&pfcalocaloSumEt_,"pfcalocaloSumEt_/D");
+
   metTree->Branch("pfSumEt_",&pfSumEt_,"pfSumEt_/D");
 
   metTree->Branch("hbhet_",&hbhet_,"hbhet_/O");
@@ -522,6 +583,11 @@ MetAnalyzer::beginJob()
   metTree->Branch("ecaldeadcellTPFilter_",&ecaldeadcellTPFilter_,"ecaldeadcellTPFilter_/O");
   metTree->Branch("eebadscf_",&eebadscf_,"eebadscf_/O");
   metTree->Branch("isolationfilterstatus_",&isolationfilterstatus_,"isolationfilterstatus_/O");
+
+  
+  metTree->Branch("ispfjet",&ispfjet,"ispfjet/O");
+  metTree->Branch("isphoton",&isphoton,"isphoton/O");
+  metTree->Branch("iselectrn",&iselectron,"iselectron/O");
 
   metTree->Branch("run",&run,"run/L");
   metTree->Branch("lumi",&lumi,"lumi/L");
@@ -605,12 +671,11 @@ bool MetAnalyzer::FindEvent(float eta1, float phi1){
   bool result = false;
   //std::cout<<" inside findevent func "<<std::endl;
   for (int i =0; i<(int)etaVec.size();i++){
-    //std::cout<<" inside loop "<<std::endl;
     eta = etaVec[i];  phi = phiVec[i];
     deta = eta-eta1;
     dphi = phi-phi1;
     float dr = TMath::Sqrt(deta*deta + dphi*dphi);
-    if(dr<0.10) {
+    if(dr<0.3) {
       std::cout<<" eta, phi,dr = "<<eta1<<", "<<phi1
 	       <<", "<<eta<<", "<<phi
 	       <<", "<<dr<<std::endl;

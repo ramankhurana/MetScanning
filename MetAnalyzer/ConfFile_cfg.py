@@ -11,7 +11,7 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
         #'file:/tmp/khurana/MET.root'
         #'file:../skim/python/skim_247072_132_132378357_Jet.root'
-        'file:/afs/cern.ch/work/k/khurana/METScanners/WithBugFix/CMSSW_7_4_4_patch2/src/MetScanning/skim/python/MET.root'
+        'file:/afs/cern.ch/work/c/chchen/public/skim0723.root'
         #'file:/afs/cern.ch/work/k/khurana/METScanners/WithBugFix/CMSSW_7_4_4_patch2/src/MetScanning/skim/python/MET.root'
         #"root://eoscms.cern.ch//store/group/phys_jetmet/schoef/private0TSkim_v3/ZeroBias8/crab_ZeroBias8_Run2015A-PromptReco-v1_RECO/150610_094947/0000/skim_1.root",
         #'file:/afs/cern.ch/work/c/chchen/public/skim.root'
@@ -24,6 +24,6 @@ process.Metanalyzer = cms.EDAnalyzer('MetAnalyzer'
 
 
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("METScanning.root")
+                                   fileName = cms.string("METScanning0724.root")
                                    )
 process.p = cms.Path(process.Metanalyzer)

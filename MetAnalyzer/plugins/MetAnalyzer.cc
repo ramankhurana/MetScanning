@@ -86,6 +86,7 @@ private:
   Double_t  pfclustermet_   ;
   Double_t  pfcalomet_      ; 
   Double_t  pfcalometPhi_          ; // 
+  Double_t  pfmet_      ;  
   
   Double_t  calometphi_     ; 
   Double_t  pfclustermetphi_;
@@ -94,7 +95,8 @@ private:
   Double_t caloSumEt_       ;
   Double_t pfclusterSumEt_  ;
   Double_t pfcalocaloSumEt_ ;
-  
+  Double_t pfSumEt_ ;  
+
   Bool_t   hbhet_          ; 
   Bool_t   csct_           ; 
   Bool_t hbhetR1_          ;
@@ -273,7 +275,7 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<bool> HBHETR1;
   edm::InputTag  hbhetagR1("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun1","SKIM");
   iEvent.getByLabel(hbhetagR1,HBHETR1);
-  hbhetr1 = (*HBHET.product());
+  hbhetr1 = (*HBHETR1.product());
   
 //edm::Handle<HcalNoiseSummary> hSummary;
 //iEvent.getByLabel("hcalnoise", hSummary);
@@ -316,6 +318,7 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   IsolatedNoiseSumE_      = hSummary->isolatedNoiseSumE(); // branch  Float_t
   IsolatedNoiseSumEt_     = hSummary->isolatedNoiseSumEt(); // branch  Float_t
   
+  //cout << NIsolatedNoiseChannels_<<endl;   
   isolationfilterstatus_ = true; // branch Bool_t
   if( hSummary->numIsolatedNoiseChannels() >=10 ) isolationfilterstatus_  = false;
   if( hSummary->isolatedNoiseSumE() >=50        ) isolationfilterstatus_  = false;
@@ -362,11 +365,13 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   calomet_         = (Double_t) cmet->et();
   pfclustermet_    = (Double_t) pfclustermet->et();
   pfcalomet_       = (Double_t) pfcalomet->et();
-  
+  pfmet_       = (Double_t) pfmet->et();  
+
   caloSumEt_       =  (Double_t)   cmet->sumEt(); 
   pfclusterSumEt_  =  (Double_t)   pfclustermet->sumEt(); 
   pfcalocaloSumEt_ =  (Double_t)   pfcalomet->sumEt(); 
-  
+  pfSumEt_ =  (Double_t)   pfmet->sumEt();  
+
   calometphi_      = (Double_t) cmet->phi();
   pfclustermetphi_ = (Double_t) pfclustermet->phi();
   pfcalometphi_    = (Double_t) pfcalomet->phi();
@@ -499,6 +504,7 @@ MetAnalyzer::beginJob()
   metTree->Branch("calomet_",&calomet_,"calomet_/D");
   metTree->Branch("pfclustermet_",&pfclustermet_,"pfclustermet_/D");
   metTree->Branch("pfcalomet_",&pfcalomet_,"pfcalomet_/D");
+  metTree->Branch("pfmet_",&pfmet_,"pfmet_/D");
   metTree->Branch("calometphi_",&calometphi_,"calometphi_/D");
   metTree->Branch("pfclustermetphi_",&pfclustermetphi_,"pfclustermetphi_/D");
   metTree->Branch("pfcalometphi_",&pfcalometphi_,"pfcalometphi_/D");
@@ -508,14 +514,22 @@ MetAnalyzer::beginJob()
   metTree->Branch("caloSumEt_",&caloSumEt_,"caloSumEt_/D");
   metTree->Branch("pfclusterSumEt_",&pfclusterSumEt_,"pfclusterSumEt_/D");
   metTree->Branch("pfcalocaloSumEt_",&pfcalocaloSumEt_,"pfcalocaloSumEt_/D");
+  metTree->Branch("pfSumEt_",&pfSumEt_,"pfSumEt_/D");
 
   metTree->Branch("hbhet_",&hbhet_,"hbhet_/O");
   metTree->Branch("csct_",&csct_,"csct_/O");
   metTree->Branch("hbhetR1_",&hbhetR1_,"hbhetR1_/O");
-  
+  metTree->Branch("ecaldeadcellTPFilter_",&ecaldeadcellTPFilter_,"ecaldeadcellTPFilter_/O");
+  metTree->Branch("eebadscf_",&eebadscf_,"eebadscf_/O");
+  metTree->Branch("isolationfilterstatus_",&isolationfilterstatus_,"isolationfilterstatus_/O");
+
   metTree->Branch("run",&run,"run/L");
   metTree->Branch("lumi",&lumi,"lumi/L");
   metTree->Branch("event",&event,"event/L");
+
+  metTree->Branch("NIsolatedNoiseChannels_",&NIsolatedNoiseChannels_,"NIsolatedNoiseChannels_/F"); 
+  metTree->Branch("IsolatedNoiseSumE_",&IsolatedNoiseSumE_ ,"IsolatedNoiseSumE_ /F");
+  metTree->Branch("IsolatedNoiseSumEt_",&IsolatedNoiseSumEt_,"IsolatedNoiseSumEt_/F");
 
 }
 

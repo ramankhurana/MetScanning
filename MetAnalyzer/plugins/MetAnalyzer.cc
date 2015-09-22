@@ -16,7 +16,7 @@
 //
 //
 
-#define nfilter  4
+#define nfilter  11
 // system include files
 #include <memory>
 #include <iostream>
@@ -83,6 +83,9 @@ private:
   bool csct;
   bool hbhetr1;
   
+  bool CSCTightHalo2015Filter_ ;
+  bool CSCTightHaloTrkMuUnvetoFilter_;
+  bool HcalStripHaloFilter_;
 
   TTree* metTree;
 
@@ -122,6 +125,7 @@ private:
   ULong64_t  event    ; 
   
   
+  TH1F* h_pfMET[nfilter];
   TH1F* caloMET[nfilter];
   TH1F* PFclusterMET[nfilter];
   TH1F* PFcaloMET[nfilter];
@@ -167,12 +171,23 @@ MetAnalyzer::MetAnalyzer(const edm::ParameterSet& iConfig)
   //f = new TFile("MetScaning_1.root","RECREATE");
   std::vector<TString> postfix;
   postfix.clear();
-  postfix.push_back("NoFilter");
-  postfix.push_back("hbhet");
-  postfix.push_back("csct");
-  postfix.push_back("all");
+  postfix.push_back("NoFilter");//1
+  postfix.push_back("hbhet");//2
+  postfix.push_back("csct");//3
+  postfix.push_back("EESCBad");//4
+  postfix.push_back("ECDCTP");//5
+  postfix.push_back("CSCTH2015");//6
+  postfix.push_back("CSCTHMu");//7
+  postfix.push_back("HCALStrp");//8
+  postfix.push_back("AllCSCTH2015");//9
+  postfix.push_back("AllCSCTHMu");//10
+  postfix.push_back("AllHCALStrp");//11
+    
   
   for(size_t i=0; i<postfix.size(); i++){
+    
+    h_pfMET[i] = fs->make<TH1F>("h_pfMET"+postfix[i],"pfMET;PFMET;# of events",4000,0,8000);
+    
     caloMET[i] = fs->make<TH1F>("caloMET"+postfix[i],"caloMET;caloMET;# of events (normalized to 1)",4000,0,8000);
     PFclusterMET[i] = fs->make<TH1F>("PFclusterMET"+postfix[i],"PFclusterMET;PFClusterMET;# of events (normalized to 1)",4000,0,8000);
     PFcaloMET[i] = fs->make<TH1F>("PFcaloMET"+postfix[i],"PFcaloMET;PFcaloMET;# of events (normalized to 1)",4000,0,8000);
@@ -233,6 +248,9 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   hbhet = false;
   csct  = false;
   hbhetr1=false;
+  CSCTightHalo2015Filter_ = false;
+  CSCTightHaloTrkMuUnvetoFilter_ = false;
+  HcalStripHaloFilter_ = false;
   
   ecaldeadcellTPFilter_=false;
   eebadscf_ = false;
@@ -306,6 +324,20 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   csct = (*CSCT.product()) ;
   if(false) std::cout<<" CSCT = "<<(*CSCT.product())<<std::endl;
   
+  edm::Handle<bool> hCSCTightHalo2015Filter;
+  iEvent.getByLabel("CSCTightHalo2015Filter", hCSCTightHalo2015Filter);
+  CSCTightHalo2015Filter_ = (*hCSCTightHalo2015Filter.product()) ;
+  std::cout<<" CSCTightHalo2015Filter_ = "<<CSCTightHalo2015Filter_<<std::endl;
+
+  edm::Handle<bool> hCSCTightHaloTrkMuUnvetoFilter;
+  iEvent.getByLabel("CSCTightHaloTrkMuUnvetoFilter", hCSCTightHaloTrkMuUnvetoFilter);
+  CSCTightHaloTrkMuUnvetoFilter_ = (*hCSCTightHaloTrkMuUnvetoFilter.product()) ;
+  std::cout<<" CSCTightHaloTrkMuUnvetoFilter_ = "<<CSCTightHaloTrkMuUnvetoFilter_<<std::endl;
+
+  edm::Handle<bool> hHcalStripHaloFilter;
+  iEvent.getByLabel("HcalStripHaloFilter", hHcalStripHaloFilter);
+  HcalStripHaloFilter_ = (*hHcalStripHaloFilter.product()) ;
+  std::cout<<" HcalStripHaloFilter_ = "<<HcalStripHaloFilter_<<std::endl;
   
   //ECAL Dead Cell Filter
   // Add branch for this.
@@ -339,6 +371,8 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	   <<" isolationfilterstatus_ = "<<isolationfilterstatus_
 	   <<std::endl;
   
+
+      
 
   // Photons 
   edm::Handle< vector<reco::Photon> > photonH;
@@ -447,10 +481,18 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
   std::vector<bool> filtervec;
   filtervec.clear();
-  filtervec.push_back(true);// This is without any filter.
-  filtervec.push_back(hbhet);// For HBHE Tight
-  filtervec.push_back(csct);//For CSC Tight)
-  filtervec.push_back(hbhet && csct);//hbhet && csct
+  filtervec.push_back(true);// 1
+  filtervec.push_back(hbhet);// 2
+  filtervec.push_back(csct);//3
+  filtervec.push_back(eebadscf_); //4
+  filtervec.push_back(ecaldeadcellTPFilter_);//5
+  filtervec.push_back(CSCTightHalo2015Filter_);//6
+  filtervec.push_back(CSCTightHaloTrkMuUnvetoFilter_);//7
+  filtervec.push_back(HcalStripHaloFilter_);//8
+  bool all = hbhet && csct &&  eebadscf_;
+  filtervec.push_back(all && CSCTightHalo2015Filter_);//9
+  filtervec.push_back(all && CSCTightHaloTrkMuUnvetoFilter_);//10
+  filtervec.push_back(all && CSCTightHaloTrkMuUnvetoFilter_);//11
   
   bool cat1 = (cmet->et()>200 ) || (pfclustermet->et() > 200) || (pfcalomet->et() > 200); //  Any MET is > 250 GeV
   // pfclustermet vs calomet
@@ -503,9 +545,10 @@ MetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       break;
     }
   }
-for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
-  if(!filtervec[ifilter]) continue;
-  // 1D Histograms
+  for(size_t ifilter=0; ifilter<filtervec.size(); ifilter++){
+    if(!filtervec[ifilter]) continue;
+    // 1D Histograms
+    h_pfMET[ifilter]->Fill(pfmet->et());
     caloMET[ifilter]->Fill(cmet->et());
     PFclusterMET[ifilter]->Fill(pfclustermet->et());
     PFcaloMET[ifilter]->Fill(pfcalomet->et());
@@ -579,6 +622,10 @@ MetAnalyzer::beginJob()
 
   metTree->Branch("hbhet_",&hbhet_,"hbhet_/O");
   metTree->Branch("csct_",&csct_,"csct_/O");
+  metTree->Branch("CSCTightHalo2015Filter_",&CSCTightHalo2015Filter_,"CSCTightHalo2015Filter_/O");
+  metTree->Branch("CSCTightHaloTrkMuUnvetoFilter_",&CSCTightHaloTrkMuUnvetoFilter_,"CSCTightHaloTrkMuUnvetoFilter_/O");
+  metTree->Branch("HcalStripHaloFilter_",&HcalStripHaloFilter_,"HcalStripHaloFilter_/O");
+  
   metTree->Branch("hbhetR1_",&hbhetR1_,"hbhetR1_/O");
   metTree->Branch("ecaldeadcellTPFilter_",&ecaldeadcellTPFilter_,"ecaldeadcellTPFilter_/O");
   metTree->Branch("eebadscf_",&eebadscf_,"eebadscf_/O");
@@ -608,7 +655,7 @@ MetAnalyzer::endJob()
   //metTree->Write();
   //f->cd();
   //for(int i=0;i<4;i++){
-  //  caloMET[i]->Write();
+  //caloMET[i]->Write();
   //  PFclusterMET[i]->Write();
   //  PFcaloMET[i]->Write();
   //  caloMET_vs_PFclusterMET[i]->Write();
